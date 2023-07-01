@@ -20,27 +20,43 @@ namespace SurveyHeaven.Application.Services
 
         public IEnumerable<AnswerDisplayResponse> GetBySurveyId(string surveyId)
         {
-            var surveys = _repository.GetAllWithPredicate((a => a.SurveyId == surveyId));
-            var surveyDisplays = _mapper.Map<IEnumerable<AnswerDisplayResponse>>(surveys);
-            return surveyDisplays;
+            var answers = _repository.GetAllWithPredicate((a => a.SurveyId == surveyId));
+            var answerDisplays = _mapper.Map<IEnumerable<AnswerDisplayResponse>>(answers);
+            return answerDisplays;
         }
 
         public async Task<IEnumerable<AnswerDisplayResponse>> GetBySurveyIdAsync(string surveyId)
         {
-            var surveys = await _repository.GetAllWithPredicateAsync((a => a.SurveyId == surveyId));
-            var surveyDisplays = _mapper.Map<IEnumerable<AnswerDisplayResponse>>(surveys);
-            return surveyDisplays;
+            var answers = await _repository.GetAllWithPredicateAsync((a => a.SurveyId == surveyId));
+            var answerDisplays = _mapper.Map<IEnumerable<AnswerDisplayResponse>>(answers);
+            return answerDisplays;
+        }
+
+        public IEnumerable<UpdateAnswerRequest> GetForSameUserCheckBySurveyId(string surveyId)
+        {
+            var answers = _repository.GetAllWithPredicate((a => a.SurveyId == surveyId));
+            var answerUpdateDisplays = _mapper.Map<IEnumerable<UpdateAnswerRequest>>(answers);
+            return answerUpdateDisplays;
+        }
+
+        public async Task<IEnumerable<UpdateAnswerRequest>> GetForSameUserCheckBySurveyIdAsync(string surveyId)
+        {
+            var answers = await _repository.GetAllWithPredicateAsync((a => a.SurveyId == surveyId));
+            var answerUpdateDisplays = _mapper.Map<IEnumerable<UpdateAnswerRequest>>(answers);
+            return answerUpdateDisplays;
         }
 
         public void Update(UpdateAnswerRequest request)
         {
             var updatedAnswer = _mapper.Map<Answer>(request);
+            updatedAnswer.Id = request.Id;
             _repository.Update(request.Id, updatedAnswer);
         }
 
         public async Task UpdateAsync(UpdateAnswerRequest request)
         {
             var updatedAnswer = _mapper.Map<Answer>(request);
+            updatedAnswer.Id = request.Id;
             await _repository.UpdateAsync(request.Id, updatedAnswer);
         }
     }

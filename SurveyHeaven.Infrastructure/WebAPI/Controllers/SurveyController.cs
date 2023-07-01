@@ -4,6 +4,9 @@ using SurveyHeaven.Application.Services;
 using SurveyHeaven.Domain.Enums;
 using SurveyHeaven.Domain.Entities;
 
+//TODO: Anketlere konulan soru ve seçenekler için filter yapısı getir.
+//TODO: Anketlerdeki açık uçlu sorulara verilen cevaplar için filter yapısı getir.
+
 namespace WebAPI.Controllers
 {
     [ApiController]
@@ -44,9 +47,14 @@ namespace WebAPI.Controllers
         [Route("Delete")]
         public async Task<IActionResult> Delete(string id)
         {
+            bool isExist = await _surveyService.IsExistsAsync(id.ToString());
+            if (!isExist)
+            {
+                return NotFound();
+            }
             await _surveyService.DeleteAsync(id.ToString());
 
-            bool isExist = await _surveyService.IsExistsAsync(id.ToString());
+            isExist = await _surveyService.IsExistsAsync(id.ToString());
             if (isExist)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError);

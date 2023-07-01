@@ -21,6 +21,7 @@ namespace SurveyHeaven.Application.Services
         public void Update(UpdateSurveyRequest request)
         {
             var updatedSurvey = _mapper.Map<Survey>(request);
+            updatedSurvey.Id = request.Id;
             _repository.Update(request.Id, updatedSurvey);
         }
 

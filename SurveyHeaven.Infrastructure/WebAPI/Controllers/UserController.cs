@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
-using SurveyHeaven.Domain.Entities;
 using SurveyHeaven.Domain.Enums;
+
+//TODO: Kullanıcı girişinde JWT işlemlerini yap.
+//TODO: İşlemelere role based authorize getir.
+//TODO: Hangfire'ı bütün projede kullanmaya çalış.
 
 namespace WebAPI.Controllers
 {
@@ -51,9 +54,14 @@ namespace WebAPI.Controllers
         [Route("Delete")]
         public async Task<IActionResult> Delete(string id)
         {
+            bool isExist = await _userService.IsExistsAsync(id.ToString());
+            if (!isExist)
+            {
+                return NotFound();
+            }
             await _userService.DeleteAsync(id.ToString());
 
-            bool isExist = await _userService.IsExistsAsync(id.ToString());
+            isExist = await _userService.IsExistsAsync(id.ToString());
             if (isExist)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError);

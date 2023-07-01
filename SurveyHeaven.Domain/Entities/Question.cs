@@ -1,4 +1,4 @@
-﻿using SurveyHeaven.Domain.Enums;
+﻿using SurveyHeaven.Domain.Common;
 using System.ComponentModel.DataAnnotations;
 
 namespace SurveyHeaven.Domain.Entities

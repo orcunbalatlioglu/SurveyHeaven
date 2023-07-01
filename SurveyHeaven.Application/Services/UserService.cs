@@ -67,12 +67,14 @@ namespace SurveyHeaven.Application.Services
         public void Update(UpdateUserRequest request)
         {
             var updatedUser = _mapper.Map<User>(request);
+            updatedUser.Id = request.Id;
             _repository.Update(request.Id, updatedUser);
         }
 
         public async Task UpdateAsync(UpdateUserRequest request)
         {
             var updatedUser = _mapper.Map<User>(request);
+            updatedUser.Id = request.Id;
             await _repository.UpdateAsync(request.Id, updatedUser);
         }
 
