@@ -90,7 +90,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetSurveyForEdit")]
+        [Route("GetForEdit")]
         public async Task<IActionResult> GetSurveyForEdit(string id)
         {
             bool isExist = await _surveyService.IsExistsAsync(id.ToString());
@@ -103,7 +103,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetSurvey")]
+        [Route("Get")]
         public async Task<IActionResult> GetSurvey(string id)
         {
             var surveyDisplay = await _surveyService.GetByIdAsync(id.ToString());
@@ -117,7 +117,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetSurveyByUserId")]
+        [Route("GetByUserId")]
         public async Task<IActionResult> GetSurveyByUserId(string id)
         {
             var surveyDisplay = await _surveyService.GetByCreatedUserIdAsync(id.ToString());

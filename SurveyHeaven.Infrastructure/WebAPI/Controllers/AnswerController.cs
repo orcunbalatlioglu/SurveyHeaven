@@ -72,7 +72,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetAnswer")]
+        [Route("Get")]
         public async Task<IActionResult> GetAnswer(string id)
         {           
             var answer = await _answerService.GetByIdAsync(id);
@@ -96,7 +96,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetAnswerForUpdate")]
+        [Route("GetForUpdate")]
         public async Task<IActionResult> GetAnswerForUpdate(string id)
         {
             var updateDisplay = await _answerService.GetForUpdateAsync(id);
@@ -108,7 +108,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetAllAnswers")]
+        [Route("GetAll")]
         public async Task<IActionResult> GetAllAnswers()
         {
             var allAnswers = await _answerService.GetAllAsync();

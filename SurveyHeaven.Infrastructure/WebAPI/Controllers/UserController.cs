@@ -94,7 +94,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetUser")]
+        [Route("Get")]
         public async Task<IActionResult> GetUser(string id)
         {
             var userDisplay = await _userService.GetByIdAsync(id.ToString());
@@ -108,7 +108,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetUserForEdit")]
+        [Route("GetForEdit")]
         public async Task<IActionResult> GetUserForEdit(string id)
         {
             bool isExist = await _userService.IsExistsAsync(id);
@@ -122,7 +122,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        [Route("ValidateUser")]
+        [Route("Validate")]
         public async Task<IActionResult> ValidateUser(string email, string password)
         {
             var user = await _userService.ValidateAsync(email, password);
