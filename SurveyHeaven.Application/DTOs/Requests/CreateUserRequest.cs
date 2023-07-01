@@ -10,7 +10,9 @@ namespace SurveyHeaven.Application.DTOs.Requests
         public string Surname { get; set; }
         [Required(ErrorMessage = "Kullanıcı e-posta adresi boş bırakılamaz!")]
         public string Email { get; set; }
+        [Required(ErrorMessage = "Kullanıcı rolü boş bırakılamaz!")]
+        public string Role { get; set; }
         [Required(ErrorMessage = "Kullanıcı şifresi boş bırakılamaz!")]
-        public string Password { get; set; }
+        public string Password { get; set; }        
     }
 }

@@ -68,7 +68,7 @@ namespace WebAPI.Controllers
                         if (ModelState.IsValid)
                         {
                             if (!checkQuestionType(request.Questions))
-                                return BadRequest("Geçersiz soru tipi. Soru tipi (checkbox,radio,text,textarea dışında bir şey olamaz!");
+                                return BadRequest("Geçersiz soru tipi. Soru tipi checkbox, radio, text ve textarea dışında bir şey olamaz!");
 
                             await _surveyService.UpdateAsync(request);
                             return Ok();
@@ -110,7 +110,7 @@ namespace WebAPI.Controllers
 
         [HttpGet]
         [Route("GetSurveyByUserId")]
-        public async Task<object> GetUser(string id)
+        public async Task<IActionResult> GetSurveyByUserId(string id)
         {
             var surveyDisplay = await _surveyService.GetByCreatedUserIdAsync(id.ToString());
 
