@@ -18,6 +18,13 @@ namespace SurveyHeaven.Application.Services
             _mapper = mapper;
         }
 
+        public async Task CreateAsync(CreateAnswerRequest request,string ipAddress)
+        {
+            var answer = _mapper.Map<Answer>(request);
+            answer.UserIp = ipAddress;
+            await _repository.AddAsync(answer);
+        }
+
         public IEnumerable<AnswerDisplayResponse> GetBySurveyId(string surveyId)
         {
             var answers = _repository.GetAllWithPredicate((a => a.SurveyId == surveyId));
@@ -39,11 +46,10 @@ namespace SurveyHeaven.Application.Services
             return answerUpdateDisplays;
         }
 
-        public async Task<IEnumerable<UpdateAnswerRequest>> GetForSameUserCheckBySurveyIdAsync(string surveyId)
+        public async Task<IEnumerable<Answer>> GetForSameUserCheckBySurveyIdAsync(string surveyId)
         {
             var answers = await _repository.GetAllWithPredicateAsync((a => a.SurveyId == surveyId));
-            var answerUpdateDisplays = _mapper.Map<IEnumerable<UpdateAnswerRequest>>(answers);
-            return answerUpdateDisplays;
+            return answers;
         }
 
         public void Update(UpdateAnswerRequest request)

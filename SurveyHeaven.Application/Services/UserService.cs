@@ -24,7 +24,7 @@ namespace SurveyHeaven.Application.Services
             var users = _repository.GetAllWithPredicate(u => u.Email == user.Email);
             if (users.Count > 0)
             {
-                throw new Exception("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
             }
             _repository.Add(user);
         }

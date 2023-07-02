@@ -11,26 +11,32 @@ namespace WebAPI.Controllers
 {
     [ApiController]
     [Produces("application/json")]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class UserController : Controller
     {
         private readonly IUserService _userService;
+        private readonly ILogger<UserController> _logger;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, 
+                              ILogger<UserController> logger)
         {
             _userService = userService;
+            _logger = logger;
         }
 
         [HttpPost]
         [Route("Create")]
         public async Task<IActionResult> Create(CreateUserRequest request)
         {
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
 
             if (ModelState.IsValid)
             {
                 try { 
                     if(!checkIsUserRoleValid(request.Role))
                     {
+                        _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğindeki kullanıcı rolü geçersiz olduğundan yeni bir varlık oluşturulmasına izin verilmemiştir.");
                         return BadRequest("Kullanıcı rolü admin, client ve editor dışında bir şey olamaz!");
                     }
                     var id = await _userService.CreateAndReturnIdAsync(request);
@@ -38,100 +44,167 @@ namespace WebAPI.Controllers
 
                     if (isCreated)
                     {
+                        _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında başarıyla sunucuda yeni bir varlık oluşturulmuştur.");
                         return Ok();
                     }
+                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında belirlemeyen bir sebepten dolayı yeni bir varlık oluşturulamamıştır.");
                     return StatusCode(StatusCodes.Status500InternalServerError);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException e)
                 {
-                    return BadRequest(ex.Message);
+                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {e.Message}");
+                    return Conflict(e.Message);
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                    return StatusCode(StatusCodes.Status500InternalServerError);
                 }
             }
+            _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde hatalar olduğu için yeni bir varlık oluşturulamamıştır.");
             return BadRequest(ModelState);
+        }       
+
+        [HttpPut]
+        [Route("Edit")]
+        public async Task<IActionResult> Edit(UpdateUserRequest request, string id)
+        {
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            try
+            {                
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    var isExist = await _userService.IsExistsAsync(request.Id);
+                    if (isExist)
+                    {
+                        if (ModelState.IsValid)
+                        {
+                            await _userService.UpdateAsync(request);
+                            _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında başarıyla sunucudaki varlık düzenlenmiştir.");
+                            return Ok();
+                        }
+                        _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde hatalar olduğu için varlık düzenlememiştir.");
+                        return BadRequest(ModelState);
+                    }
+                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında sunucuda belirtilen id ile eşleşen bir varlık bulunamamıştır.");
+                    return NotFound("Düzenlenmek istenen kullanıcı sunucuda bulunamadı!");
+                }
+                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde id boş olduğu için işlem gerçekleştirilememiştir.");
+                return BadRequest("İstek boş!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
 
         [HttpDelete]
         [Route("Delete")]
         public async Task<IActionResult> Delete(string id)
         {
-            bool isExist = await _userService.IsExistsAsync(id.ToString());
-            if (!isExist)
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            try
             {
-                return NotFound();
-            }
-            await _userService.DeleteAsync(id.ToString());
+                bool isExist = await _userService.IsExistsAsync(id.ToString());
+                if (!isExist)
+                {
+                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                    return NotFound();
+                }
+                await _userService.DeleteAsync(id.ToString());
 
-            isExist = await _userService.IsExistsAsync(id.ToString());
-            if (isExist)
+                isExist = await _userService.IsExistsAsync(id.ToString());
+                if (isExist)
+                {
+                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık silinmeye çalışılmıştır fakat sunucudan başarılı şekilde silinememiştir.");
+                    return StatusCode(StatusCodes.Status500InternalServerError);
+                }
+                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık başarılı bir şekilde sunucudan silinmiştir.");
+                return Ok();
+            }
+            catch(Exception ex)
             {
+                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
-            return Ok();
-        }
-
-        [HttpPut]
-        [Route("Edit")]
-        public async Task<IActionResult> Edit(UpdateUserRequest request, string id)
-        {
-            if (request != null)
-            {
-                if (!string.IsNullOrWhiteSpace(request.Id))
-                {
-                    var isExist = await _userService.IsExistsAsync(request.Id);
-                    if (isExist)
-                    {
-                        if (ModelState.IsValid)
-                        {                            
-                            await _userService.UpdateAsync(request);
-                            return Ok();
-                        }
-                        return BadRequest(ModelState);
-                    }
-                    return NotFound("Düzenlenmek istenen kullanıcı sunucuda bulunamadı!");
-                }
-            }
-            return BadRequest("İstek boş!");
         }
 
         [HttpGet]
         [Route("Get")]
         public async Task<IActionResult> GetUser(string id)
         {
-            var userDisplay = await _userService.GetByIdAsync(id.ToString());
-
-            if (userDisplay == null)
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            try
             {
-                return NotFound();
-            }
+                var userDisplay = await _userService.GetByIdAsync(id.ToString());
 
-            return Ok(userDisplay);
+                if (userDisplay == null)
+                {
+                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                    return NotFound();
+                }
+                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen varlık başarılı bir şekilde kullanıcıya iletilmiştir.");
+                return Ok(userDisplay);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
 
         [HttpGet]
         [Route("GetForEdit")]
         public async Task<IActionResult> GetUserForEdit(string id)
         {
-            bool isExist = await _userService.IsExistsAsync(id);
-            if (isExist)
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            try
             {
-                var updateDisplay = await _userService.GetForUpdateAsync(id);
-                updateDisplay.Password = string.Empty;
-                return Ok(updateDisplay);
+                bool isExist = await _userService.IsExistsAsync(id);
+                if (isExist)
+                {
+                    var updateDisplay = await _userService.GetForUpdateAsync(id);
+                    updateDisplay.Password = string.Empty;
+                    _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen varlık başarılı bir şekilde kullanıcıya iletilmiştir.");
+                    return Ok(updateDisplay);
+                }
+                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                return NotFound();
             }
-            return NotFound();
+            catch (Exception ex) 
+            {
+                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
 
         [HttpGet]
         [Route("Validate")]
         public async Task<IActionResult> ValidateUser(string email, string password)
         {
-            var user = await _userService.ValidateAsync(email, password);
-            if (user is not null) 
-            {
-                var loggedUser = await _userService.GetByIdAsync(user.Id);
-                return Ok(loggedUser);
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            try { 
+                var user = await _userService.ValidateAsync(email, password);
+                if (user is not null) 
+                {
+                    var loggedUser = await _userService.GetByIdAsync(user.Id);
+                    _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki email:({email}) ve password:({password}) ile sunucuda eşleşen varlık bulunmuştur. Kullanıcının girişi başarılı bir şekilde tamamlanmıştır.");
+                    return Ok(loggedUser);
+                }
+                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki email:({email}) ve password:({password}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                return NotFound();
             }
-            return NotFound();
+            catch (Exception ex) 
+            {
+                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde email:({email}) ve password:({password}) değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
 
         private bool checkIsUserRoleValid(string userRole)

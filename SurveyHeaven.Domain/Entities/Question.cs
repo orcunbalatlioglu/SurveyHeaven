@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SurveyHeaven.Domain.Entities
 {
-    public class Question
+    public class Question : IEntity
     {
         [Required(ErrorMessage = "Sorunun id'si boş bırakılamaz!")]
         public int Id { get; set; }

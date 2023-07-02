@@ -1,6 +1,5 @@
 ﻿
 using SurveyHeaven.Domain.Entities;
-using System.ComponentModel.DataAnnotations;
 
 namespace SurveyHeaven.Application.DTOs.Responses
 {
