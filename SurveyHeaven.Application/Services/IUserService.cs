@@ -10,6 +10,6 @@ namespace SurveyHeaven.Application.Services
         Task UpdateAsync(UpdateUserRequest request);
         string CreateAndReturnId(CreateUserRequest request);
         Task<string> CreateAndReturnIdAsync(CreateUserRequest request);
-        Task<User?> ValidateAsync(string email, string password);
+        Task<Dictionary<string,string>> ValidateAsync(string email, string password, string jwtKey);
     }
 }

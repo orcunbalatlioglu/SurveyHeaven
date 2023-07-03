@@ -1,8 +1,13 @@
-﻿using AutoMapper;
+﻿using Amazon.Runtime.Internal.Transform;
+using AutoMapper;
+using Microsoft.IdentityModel.Tokens;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.DTOs.Responses;
 using SurveyHeaven.Domain.Entities;
 using SurveyHeaven.DomainService.Repositories;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace SurveyHeaven.Application.Services
 {
@@ -78,10 +83,41 @@ namespace SurveyHeaven.Application.Services
             await _repository.UpdateAsync(request.Id, updatedUser);
         }
 
-        public async Task<User?> ValidateAsync(string email, string password)
+        public async Task<Dictionary<string,string>> ValidateAsync(string email, string password, string jwtKey)
         {
             var users = await _repository.GetAllAsync();
-            return users.SingleOrDefault(u => u.Email == email && u.Password == password);
+            var user = users.SingleOrDefault(u => u.Email == email && u.Password == password);
+            if (user is not null)
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var tokenKey = Encoding.ASCII.GetBytes(jwtKey);
+
+                var tokenDescriptor = new SecurityTokenDescriptor()
+                {
+                    Subject = new ClaimsIdentity(new Claim[]
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, user.Id),
+                        new Claim(ClaimTypes.Email, user.Email),
+                        new Claim(ClaimTypes.Name, user.Name),
+                        new Claim(ClaimTypes.Surname, user.Surname),
+                        new Claim(ClaimTypes.Role, user.Role)
+                    }),
+                    Expires = DateTime.UtcNow.AddDays(1),
+                    SigningCredentials = new SigningCredentials(
+                        new SymmetricSecurityKey(tokenKey),
+                        SecurityAlgorithms.HmacSha256Signature
+                    )
+                };
+
+                var token = tokenHandler.CreateToken(tokenDescriptor);
+
+                var finalToken = tokenHandler.WriteToken(token);
+                Dictionary<string, string> validatedUserInfos = new Dictionary<string, string>();
+                validatedUserInfos.Add("Token", finalToken);
+                validatedUserInfos.Add("UserId", user.Id);
+                return validatedUserInfos;
+            }
+            return new Dictionary<string,string>();
         }
     }
 }

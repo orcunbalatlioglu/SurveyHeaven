@@ -32,5 +32,15 @@ namespace SurveyHeaven.WebAPI.Logger
         {
             _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki bilgilerle id:{id} olan kullanıcı başarılı bir şekilde sisteme giriş yapmıştır.");
         }
+
+        public void UnauthorizedProfileEdit(string controllerName, string actionName, string signedInUserId, string requestUserId)
+        {
+            _logger.LogWarning($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki bilgilerle id:{requestUserId} düzenlenmek istenen kullanıcı ile giriş yapmış olan kullanıcı id:{signedInUserId} uyuşmadığından işleme izin verilmemiştir.");
+        }
+
+        public void UnauthorizedProfileGetForUpdate(string controllerName, string actionName, string signedInUserId, string requestUserId)
+        {
+            _logger.LogWarning($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki profil bilgileri istenen kullanıcı id:{requestUserId} ile giriş yapmış olan kullanıcı id:{signedInUserId} uyuşmadığından işleme izin verilmemiştir.");
+        }
     }
 }
