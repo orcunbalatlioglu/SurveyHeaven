@@ -2,6 +2,7 @@
 using SurveyHeaven.Application.Services;
 using SurveyHeaven.Domain.Entities;
 using SurveyHeaven.DomainService.Repositories;
+using WebAPI.Logger;
 
 namespace WebAPI.Extensions
 {
@@ -17,6 +18,10 @@ namespace WebAPI.Extensions
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IUserRepository, UserRepository>();
+
+            services.AddScoped<IAnswerLogManager, AnswerLogManager>();
+            services.AddScoped<IUserLogManager, UserLogManager>();
+            services.AddScoped<ISurveyLogManager, SurveyLogManager>();
 
             services.AddAutoMapper(typeof(MappingProfile));
 

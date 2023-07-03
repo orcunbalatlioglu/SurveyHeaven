@@ -4,6 +4,7 @@ using SurveyHeaven.Application.Services;
 using SurveyHeaven.Domain.Enums;
 using SurveyHeaven.Domain.Entities;
 using Amazon.Runtime.Internal;
+using WebAPI.Logger;
 
 //TODO: Anketlere konulan soru ve seçenekler için filter yapısı getir.
 //TODO: Anketlerdeki açık uçlu sorulara verilen cevaplar için filter yapısı getir.
@@ -16,13 +17,13 @@ namespace WebAPI.Controllers
     public class SurveyController : Controller
     {
         private readonly ISurveyService _surveyService;
-        private readonly ILogger<SurveyController> _logger;
+        private readonly ISurveyLogManager _logManager;
 
         public SurveyController(ISurveyService surveyService,
-                                ILogger<SurveyController> logger)
+                                ISurveyLogManager logManager)
         {
             _surveyService = surveyService;
-            _logger = logger;
+            _logManager = logManager;
         }
 
         [HttpPost]
@@ -35,7 +36,7 @@ namespace WebAPI.Controllers
             {
                 if (!checkQuestionType(request.Questions))
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğindeki soru tipleri uygun olmadığı için anketin yaratılmasına izin verilmemiştir.");
+                    _logManager.InvalidQuestionType(controllerName, actionName, request);
                     return BadRequest("Geçersiz soru tipi. Soru tipi (checkbox,radio,text,textarea dışında bir şey olamaz!");
                 }
                 if (ModelState.IsValid)
@@ -45,19 +46,19 @@ namespace WebAPI.Controllers
 
                     if (isCreated)
                     {
-                        _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında başarıyla sunucuda yeni bir varlık oluşturulmuştur.");
+                        _logManager.SuccesfullCreate(controllerName, actionName, request);
                         return Ok();
                     }
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında belirlemeyen bir sebepten dolayı yeni bir varlık oluşturulamamıştır.");
-                    return StatusCode(StatusCodes.Status500InternalServerError);
 
+                    _logManager.UnableCreate(controllerName, actionName, request);                    
+                    return StatusCode(StatusCodes.Status500InternalServerError);
                 }
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde hatalar olduğu için yeni bir varlık oluşturulamamıştır.");
+                _logManager.InvalidCreate(controllerName, actionName, request);
                 return BadRequest(ModelState);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, request, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -65,7 +66,7 @@ namespace WebAPI.Controllers
 
         [HttpPut]
         [Route("Edit")]
-        public async Task<IActionResult> Edit(UpdateSurveyRequest request, string id)
+        public async Task<IActionResult> Edit(UpdateSurveyRequest request)
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
@@ -79,26 +80,26 @@ namespace WebAPI.Controllers
                         if (ModelState.IsValid)
                         {
                             if (!checkQuestionType(request.Questions)) {
-                                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde girilen soru tiplerinde geçersiz soru tipi bulunmasından dolayı varlık güncellenememiştir.");
+                                _logManager.InvalidQuestionType(controllerName, actionName, request);
                                 return BadRequest("Geçersiz soru tipi. Soru tipi checkbox, radio, text ve textarea dışında bir şey olamaz!");
                             }
                             
                             await _surveyService.UpdateAsync(request);
-                            _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında başarıyla sunucudaki varlık düzenlenmiştir.");
+                            _logManager.SuccesfullEdit(controllerName, actionName, request);
                             return Ok();
                         }
-                        _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde hatalar olduğu için yeni bir varlık oluşturulamamıştır.");
+                        _logManager.InvalidEdit(controllerName, actionName, request);
                         return BadRequest(ModelState);
                     }
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında sunucuda belirtilen id ile eşleşen bir varlık bulunamamıştır.");
+                    _logManager.NotExistInServer(controllerName, actionName,request);
                     return NotFound("Düzenlenmek istenen anket sunucuda bulunamadı!");
                 }                
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde id boş olduğu için işlem gerçekleştirilememiştir.");
+                _logManager.BlankRequestId(controllerName, actionName, request);
                 return BadRequest("Id boş!");
             }
             catch(Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, request, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -115,7 +116,7 @@ namespace WebAPI.Controllers
                 bool isExist = await _surveyService.IsExistsAsync(id.ToString());
                 if (!isExist)
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde sunucuda belirtilen id ile eşleşen bir varlık bulunamamıştır.");
+                    _logManager.NotExistInServer(controllerName, actionName, id);
                     return NotFound();
                 }
                 await _surveyService.DeleteAsync(id.ToString());
@@ -123,15 +124,15 @@ namespace WebAPI.Controllers
                 isExist = await _surveyService.IsExistsAsync(id.ToString());
                 if (isExist)
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık silinmeye çalışılmıştır fakat sunucudan başarılı şekilde silinememiştir.");
+                    _logManager.UnableDelete(controllerName, actionName, id);
                     return StatusCode(StatusCodes.Status500InternalServerError);
                 }
-                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık başarılı bir şekilde sunucudan silinmiştir.");
+                _logManager.SuccesfullDelete(controllerName, actionName, id);
                 return Ok();
             }
             catch(Exception ex) 
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName,actionName,ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -149,14 +150,15 @@ namespace WebAPI.Controllers
                 if (isExist)
                 {
                     var updateDisplay = await _surveyService.GetForUpdateAsync(id.ToString());
+                    _logManager.SuccesfullGet(controllerName, actionName, id);
                     return Ok(updateDisplay);
                 }
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                _logManager.NotExistInServer(controllerName, actionName, id);
                 return NotFound();
             }
             catch(Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -173,15 +175,15 @@ namespace WebAPI.Controllers
 
                 if (surveyDisplay == null)
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                    _logManager.NotExistInServer(controllerName, actionName, id);
                     return NotFound();
                 }
-                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen varlık başarılı bir şekilde kullanıcıya iletilmiştir.");
+                _logManager.SuccesfullGet(controllerName,actionName, id);
                 return Ok(surveyDisplay);
             }
             catch(Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -198,15 +200,15 @@ namespace WebAPI.Controllers
 
                 if (surveyDisplay.Count() > 0)
                 {
-                    _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen varlıklar başarılı bir şekilde kullanıcıya iletilmiştir.");
+                    _logManager.SuccesfullGet(controllerName, actionName, id);
                     return Ok(surveyDisplay);                   
                 }
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                _logManager.NotExistInServer(controllerName, actionName, id);
                 return NotFound();
             }
             catch (Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }

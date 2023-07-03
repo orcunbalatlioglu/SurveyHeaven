@@ -1,13 +1,9 @@
-﻿using Amazon.Runtime.Internal;
-using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Http;
+﻿using WebAPI.Logger;
 using Microsoft.AspNetCore.Mvc;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
 using System.Net;
 
-//TODO: Bütün işlemler için loglamaları yap.
-//TODO: Kullanıcı ipsini post içinden almayı dene.
 
 namespace WebAPI.Controllers
 {
@@ -19,15 +15,15 @@ namespace WebAPI.Controllers
     {
         private readonly IAnswerService _answerService;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ILogger<AnswerController> _logger;
+        private readonly IAnswerLogManager _logManager;
 
         public AnswerController(IAnswerService answerService,
                                 IHttpContextAccessor httpContextAccessor,
-                                ILogger<AnswerController> logger)
+                                IAnswerLogManager logManager)
         {
             _answerService = answerService;
             _httpContextAccessor = httpContextAccessor;
-            _logger = logger;
+            _logManager = logManager;
         }
 
         [HttpPost]
@@ -36,63 +32,74 @@ namespace WebAPI.Controllers
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+
             try
             {
                 string ipAddress = getClientIp();
+
                 if (string.IsNullOrWhiteSpace(ipAddress))
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde ip adresine erişilememiştir.");
+                    _logManager.BlankIpError(controllerName,actionName,request);
                     return Forbid("İsteğinizde ip adresine erişilememiştir.");
                 }
+
                 if (ModelState.IsValid)
                 {
                     var isReplied = await checkIfRepliedBeforeBySameUser(request.SurveyId);
                     if (isReplied)
                     {
-                        _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğindeki ip adresi daha önce aynı anketi doldurduğu için tekrar cevaplamasına izin verilmemiştir.");
+                        _logManager.AlreadyUsedIpInformation(controllerName,actionName,request);
                         return BadRequest("Bu anket daha önce doldurulmuş!");
                     }
                     await _answerService.CreateAsync(request, ipAddress);
-                    _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında başarıyla sunucuda yeni bir varlık oluşturulmuştur.");
+                    _logManager.SuccesfullCreate(controllerName,actionName,request);
                     return Ok();
                 }
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde hatalar olduğu için yeni bir varlık oluşturulamamıştır.");
+
+                _logManager.InvalidCreate(controllerName,actionName,request);
                 return BadRequest(ModelState);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName,actionName,request,ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
 
         [HttpPut]
         [Route("Edit")]
-        public async Task<IActionResult> Edit(UpdateAnswerRequest request, string id)
+        public async Task<IActionResult> Edit(UpdateAnswerRequest request)
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+
             try
             {
-                if (ModelState.IsValid)
-                {                    
-                    var isExist = await _answerService.IsExistsAsync(request.Id);
-                    if (!isExist)
-                    {
-                        _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında sunucuda belirtilen id ile eşleşen bir varlık bulunamamıştır.");
-                        return NotFound();
+                if (!string.IsNullOrWhiteSpace(request.Id)) 
+                { 
+                    if (ModelState.IsValid)
+                    {                    
+                        var isExist = await _answerService.IsExistsAsync(request.Id);
+                        if (!isExist)
+                        {
+                            _logManager.NotExistInServer(controllerName,actionName,request);
+                            return NotFound();
+                        }
+
+                        await _answerService.UpdateAsync(request);
+                        _logManager.SuccesfullEdit(controllerName,actionName,request);
+                        return Ok();                    
                     }
 
-                    await _answerService.UpdateAsync(request);
-                    _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği karşılığında başarıyla sunucudaki varlık düzenlenmiştir.");
-                    return Ok();                    
+                    _logManager.InvalidEdit(controllerName,actionName,request);
+                    return BadRequest(ModelState);
                 }
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde hatalar olduğu için varlık düzenlememiştir.");
-                return BadRequest(ModelState);
+                _logManager.BlankRequestId(controllerName,actionName,request);
+                return BadRequest("Id boş!");
             }
             catch(Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteği sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName,request,ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -103,11 +110,12 @@ namespace WebAPI.Controllers
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+
             try { 
                 var isExist = await _answerService.IsExistsAsync(id);
                 if (!isExist)
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                    _logManager.NotExistInServer(controllerName, actionName, id);
                     return NotFound();
                 }
                 await _answerService.DeleteAsync(id);
@@ -115,16 +123,16 @@ namespace WebAPI.Controllers
                 isExist = await _answerService.IsExistsAsync(id);
                 if (isExist)
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık silinmeye çalışılmıştır fakat sunucudan başarılı şekilde silinememiştir.");
+                    _logManager.UnableDelete(controllerName, actionName, id);
                     return StatusCode(StatusCodes.Status500InternalServerError);
                 }
-                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık başarılı bir şekilde sunucudan silinmiştir.");
+
+                _logManager.SuccesfullDelete(controllerName, actionName, id);
                 return Ok();
             }
             catch(Exception ex) 
             {
-                
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -135,21 +143,22 @@ namespace WebAPI.Controllers
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+
             try { 
                 var isExist = await _answerService.IsExistsAsync(id);
                 if (!isExist)
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                    _logManager.NotExistInServer(controllerName,actionName, id);
                     return NotFound();
                 }
                 var answer = await _answerService.GetByIdAsync(id);
 
-                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen varlık başarılı bir şekilde kullanıcıya iletilmiştir.");
+                _logManager.SuccesfullGet(controllerName, actionName, id);
                 return Ok(answer);
             }
             catch(Exception ex) 
             {                
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -164,15 +173,15 @@ namespace WebAPI.Controllers
                 var answers = await _answerService.GetBySurveyIdAsync(id);
                 if (answers.Count() > 0)
                 {
-                    _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen varlıklar başarılı bir şekilde kullanıcıya iletilmiştir.");
+                    _logManager.SuccesfullGet(controllerName, actionName, id);
                     return Ok(answers);
                 }
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                _logManager.NotExistInServer(controllerName, actionName, id);
                 return NotFound();
             }
             catch (Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -188,17 +197,17 @@ namespace WebAPI.Controllers
                 var isExist = await _answerService.IsExistsAsync(id);
                 if (!isExist)
                 {
-                    _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+                    _logManager.NotExistInServer(controllerName, actionName, id);
                     return NotFound();
                 }
                 var updateDisplay = await _answerService.GetForUpdateAsync(id);
 
-                _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id değeri ({id}) ile sunucuda eşleşen varlık başarılı bir şekilde kullanıcıya iletilmiştir.");
+                _logManager.SuccesfullGet(controllerName, actionName, id);
                 return Ok(updateDisplay);
             }
             catch(Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde Id:{id} değerine sahip varlığın istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName,actionName, id, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -213,15 +222,15 @@ namespace WebAPI.Controllers
                 var allAnswers = await _answerService.GetAllAsync();
                 if (allAnswers.Count() > 0)
                 {
-                    _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde sunucudaki eşleşen bütün varlıklar başarılı bir şekilde kullanıcıya iletilmiştir.");
+                    _logManager.SuccesfullGetAll(controllerName, actionName);
                     return Ok(allAnswers);
                 }
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde sunucuda eşleşen herhangi bir varlık bulunamamıştır.");
+                _logManager.NotExistInServer(controllerName, actionName);
                 return NotFound();
             }
             catch (Exception ex)
             {
-                _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istenilen işlemi gerçekleştirilmesi sırasında bir hata ile karşılaşılmıştır. Hata mesajı: {ex.Message}");
+                _logManager.ExceptionOccured(controllerName, actionName, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
