@@ -3,13 +3,12 @@ using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
 using SurveyHeaven.Domain.Enums;
 using SurveyHeaven.Domain.Entities;
-using Amazon.Runtime.Internal;
-using WebAPI.Logger;
+using SurveyHeaven.WebAPI.Logger;
 
 //TODO: Anketlere konulan soru ve seçenekler için filter yapısı getir.
 //TODO: Anketlerdeki açık uçlu sorulara verilen cevaplar için filter yapısı getir.
 
-namespace WebAPI.Controllers
+namespace SurveyHeaven.WebAPI.Controllers
 {
     [ApiController]
     [Produces("application/json")]

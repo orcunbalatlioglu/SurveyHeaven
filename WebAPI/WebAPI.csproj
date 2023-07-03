@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SurveyHeaven.Application\SurveyHeaven.Application.csproj" />
+    <ProjectReference Include="..\SurveyHeaven.Application\SurveyHeaven.Application.csproj" />
   </ItemGroup>
 
 </Project>

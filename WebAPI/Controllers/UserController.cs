@@ -2,13 +2,13 @@
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
 using SurveyHeaven.Domain.Enums;
-using WebAPI.Logger;
+using SurveyHeaven.WebAPI.Logger;
 
 //TODO: Kullanıcı girişinde JWT işlemlerini yap.
 //TODO: İşlemelere role based authorize getir.
 //TODO: Hangfire'ı bütün projede kullanmaya çalış.
 
-namespace WebAPI.Controllers
+namespace SurveyHeaven.WebAPI.Controllers
 {
     [ApiController]
     [Produces("application/json")]

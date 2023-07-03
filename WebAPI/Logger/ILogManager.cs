@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.VisualBasic;
-using SurveyHeaven.Application.DTOs;
+﻿using SurveyHeaven.Application.DTOs;
 
-namespace WebAPI.Logger
+namespace SurveyHeaven.WebAPI.Logger
 {
     public interface ILogManager<TCreate, TUpdate> 
     where TCreate : class,IDto 

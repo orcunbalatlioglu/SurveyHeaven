@@ -2,9 +2,9 @@
 using SurveyHeaven.Application.Services;
 using SurveyHeaven.Domain.Entities;
 using SurveyHeaven.DomainService.Repositories;
-using WebAPI.Logger;
+using SurveyHeaven.WebAPI.Logger;
 
-namespace WebAPI.Extensions
+namespace SurveyHeaven.WebAPI.Extensions
 {
     public static class IoCExtensions
     {

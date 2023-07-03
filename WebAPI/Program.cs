@@ -1,5 +1,5 @@
 using Serilog;
-using WebAPI.Extensions;
+using SurveyHeaven.WebAPI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,8 +1,8 @@
 ﻿using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.DTOs.Responses;
-using WebAPI.Controllers;
+using SurveyHeaven.WebAPI.Controllers;
 
-namespace WebAPI.Logger
+namespace SurveyHeaven.WebAPI.Logger
 {
     public class SurveyLogManager : BaseLogManager<SurveyController, CreateSurveyRequest, UpdateSurveyRequest, SurveyDisplayResponse>, ISurveyLogManager
     {

@@ -1,6 +1,6 @@
 ﻿using SurveyHeaven.Application.DTOs.Requests;
 
-namespace WebAPI.Logger
+namespace SurveyHeaven.WebAPI.Logger
 {
     public interface IUserLogManager : ILogManager<CreateUserRequest, UpdateUserRequest>
     {

@@ -1,8 +1,6 @@
-﻿using Amazon.Runtime.Internal;
-using Microsoft.AspNetCore.Mvc;
-using SurveyHeaven.Application.DTOs;
+﻿using SurveyHeaven.Application.DTOs;
 
-namespace WebAPI.Logger
+namespace SurveyHeaven.WebAPI.Logger
 {
     public abstract class BaseLogManager<T, TCreate, TUpdate, TDisplay> : ILogManager<TCreate, TUpdate>
     where TCreate : class, IDto

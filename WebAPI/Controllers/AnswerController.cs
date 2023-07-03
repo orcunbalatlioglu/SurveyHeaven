@@ -1,13 +1,10 @@
-﻿using WebAPI.Logger;
+﻿using SurveyHeaven.WebAPI.Logger;
 using Microsoft.AspNetCore.Mvc;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
-using System.Net;
 
-
-namespace WebAPI.Controllers
-{
-    
+namespace SurveyHeaven.WebAPI.Controllers
+{    
     [ApiController]
     [Produces("application/json")]
     [Route("api/[controller]")]
