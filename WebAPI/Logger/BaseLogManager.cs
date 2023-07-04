@@ -98,5 +98,10 @@ namespace SurveyHeaven.WebAPI.Logger
         {
             _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {request} isteğinde id boş olduğu için işlem gerçekleştirilememiştir.");
         }
+
+        public void UnauthorizedAccessTry(string controllerName, string actionName, string signedInUserId, string requestId)
+        {
+            _logger.LogWarning($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki id:{requestId} ile giriş yapmış olan kullanıcı id:{signedInUserId} uyuşmadığından işleme izin verilmemiştir.");
+        }
     }
 }

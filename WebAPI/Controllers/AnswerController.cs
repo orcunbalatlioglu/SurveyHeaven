@@ -2,27 +2,34 @@
 using Microsoft.AspNetCore.Mvc;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace SurveyHeaven.WebAPI.Controllers
-{    
+{
+    [Authorize]
     [ApiController]
     [Produces("application/json")]
     [Route("api/[controller]")]
     public class AnswerController : Controller
     {
         private readonly IAnswerService _answerService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ISurveyService _surveyService;
+        private readonly IHttpContextAccessor _contextAccessor;
         private readonly IAnswerLogManager _logManager;
 
         public AnswerController(IAnswerService answerService,
-                                IHttpContextAccessor httpContextAccessor,
+                                ISurveyService surveyService,
+                                IHttpContextAccessor contextAccessor,
                                 IAnswerLogManager logManager)
         {
             _answerService = answerService;
-            _httpContextAccessor = httpContextAccessor;
+            _surveyService = surveyService;
+            _contextAccessor = contextAccessor;
             _logManager = logManager;
         }
 
+        [AllowAnonymous]
         [HttpPost]
         [Route("Create")]
         public async Task<IActionResult> Create(CreateAnswerRequest request)
@@ -44,9 +51,12 @@ namespace SurveyHeaven.WebAPI.Controllers
                 {
                     var isReplied = await checkIfRepliedBeforeBySameUser(request.SurveyId);
                     if (isReplied)
-                    {
+                    {                        
                         _logManager.AlreadyUsedIpInformation(controllerName,actionName,request);
-                        return BadRequest("Bu anket daha önce doldurulmuş!");
+
+                        string answerId = await _answerService.GetIdBySurveyIdAndUserIpAsync(request.SurveyId, ipAddress);
+                        string message = "Bu anket daha önce doldurulmuş!";
+                        return Conflict( new { message, answerId } );
                     }
                     await _answerService.CreateAsync(request, ipAddress);
                     _logManager.SuccesfullCreate(controllerName,actionName,request);
@@ -63,6 +73,7 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPut]
         [Route("Edit")]
         public async Task<IActionResult> Edit(UpdateAnswerRequest request)
@@ -83,9 +94,29 @@ namespace SurveyHeaven.WebAPI.Controllers
                             return NotFound();
                         }
 
-                        await _answerService.UpdateAsync(request);
-                        _logManager.SuccesfullEdit(controllerName,actionName,request);
-                        return Ok();                    
+                        var clientIp = getClientIp();
+                        var signedInUserId = getClientSignedInUserId();
+                        var signedInRole = getClientSignedInRole();
+                        Dictionary<string, string> userIdAndIp = await _answerService.GetIpAndUserIdByIdAsync(request.Id);
+                        var answerIp = userIdAndIp["ip"];
+                        var answerUserId = userIdAndIp["userId"];
+
+                        if (answerIp == clientIp || (answerUserId == signedInUserId && signedInRole == "client") )
+                        {
+                            await _answerService.UpdateAsync(request, signedInUserId, clientIp);
+                            _logManager.SuccesfullEdit(controllerName, actionName, request);
+                            return Ok();
+                        }
+                        else if(signedInRole == "editor" || signedInRole == "admin") 
+                        {
+                            await _answerService.UpdateAsync(request, signedInUserId, clientIp);
+                            _logManager.SuccesfullEdit(controllerName, actionName, request);
+                            return Ok();
+                        }
+                        else { 
+                            _logManager.UnauthorizedAccessTry(controllerName, actionName, signedInUserId, answerUserId);
+                            return Forbid();
+                        }
                     }
 
                     _logManager.InvalidEdit(controllerName,actionName,request);
@@ -101,6 +132,7 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
+        [Authorize(Roles ="admin,editor")]
         [HttpDelete]
         [Route("Delete")]
         public async Task<IActionResult> Delete(string id)
@@ -134,6 +166,7 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
+        [Authorize(Roles = "editor,admin")]
         [HttpGet]
         [Route("Get")]
         public async Task<IActionResult> GetAnswer(string id)
@@ -160,25 +193,34 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
+
+        [Authorize]
         [HttpGet]
         [Route("GetSurveyAnswers")]
-        public async Task<IActionResult> GetSurveyAnswers(string id)
+        public async Task<IActionResult> GetSurveyAnswers(string surveyId)
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
-            try {                 
-                var answers = await _answerService.GetBySurveyIdAsync(id);
-                if (answers.Count() > 0)
+            try {
+                var role = getClientSignedInRole();
+                bool isBelongToUser = await checkIsSurveyBelongToThisUser(surveyId);
+                if (isBelongToUser || role == "admin" || role == "editor")
                 {
-                    _logManager.SuccesfullGet(controllerName, actionName, id);
-                    return Ok(answers);
+                    var answers = await _answerService.GetBySurveyIdAsync(surveyId);
+                    if (answers.Count() > 0)
+                    {
+                        _logManager.SuccesfullGet(controllerName, actionName, surveyId);
+                        return Ok(answers);
+                    }
+                    _logManager.NotExistInServer(controllerName, actionName, surveyId);
+                    return NotFound();
                 }
-                _logManager.NotExistInServer(controllerName, actionName, id);
-                return NotFound();
+                _logManager.UnauthorizedAccessTry(controllerName, actionName, getClientSignedInUserId(), surveyId);
+                return Forbid();
             }
             catch (Exception ex)
             {
-                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
+                _logManager.ExceptionOccured(controllerName, actionName, surveyId, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -197,10 +239,32 @@ namespace SurveyHeaven.WebAPI.Controllers
                     _logManager.NotExistInServer(controllerName, actionName, id);
                     return NotFound();
                 }
-                var updateDisplay = await _answerService.GetForUpdateAsync(id);
 
-                _logManager.SuccesfullGet(controllerName, actionName, id);
-                return Ok(updateDisplay);
+                var clientIp = getClientIp();
+                var signedInUserId = getClientSignedInUserId();
+                var signedInRole = getClientSignedInRole();
+                Dictionary<string, string> userIdAndIp = await _answerService.GetIpAndUserIdByIdAsync(id);
+                var answerIp = userIdAndIp["ip"];
+                var answerUserId = userIdAndIp["userId"];
+
+                if ( clientIp == answerIp || (answerUserId == signedInUserId && signedInRole == "client"))
+                {                    
+                    var updateDisplay = await _answerService.GetForUpdateAsync(id);
+                    _logManager.SuccesfullGet(controllerName, actionName, id);
+                    return Ok(updateDisplay);
+                }
+                else if (signedInRole == "editor" || signedInRole == "admin")
+                {
+                    var updateDisplay = await _answerService.GetForUpdateAsync(id);
+                    _logManager.SuccesfullGet(controllerName, actionName, id);
+                    return Ok(updateDisplay);
+                }
+                else
+                {
+                    _logManager.UnauthorizedAccessTry(controllerName, actionName, signedInUserId, answerUserId);
+                    return Forbid();
+                }
+
             }
             catch(Exception ex)
             {
@@ -209,6 +273,7 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
+        [Authorize(Roles = "admin,editor")]
         [HttpGet]
         [Route("GetAll")]
         public async Task<IActionResult> GetAllAnswers()
@@ -235,10 +300,13 @@ namespace SurveyHeaven.WebAPI.Controllers
         private async Task<bool> checkIfRepliedBeforeBySameUser(string surveyId)
         {
             var ipAddress = getClientIp();
+            var signedInUserId = getClientSignedInUserId();
+            var signedInRole = getClientSignedInRole();
             var replies = await _answerService.GetForSameUserCheckBySurveyIdAsync(surveyId);
+
             foreach(var reply in replies)
             {
-                if (reply.UserIp == ipAddress) 
+                if (reply.UserIp == ipAddress || (reply.UserId == signedInUserId && signedInRole == "client")) 
                 {
                     return true;
                 }
@@ -248,7 +316,29 @@ namespace SurveyHeaven.WebAPI.Controllers
 
         private string? getClientIp()
         {
-            return _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+            return _contextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+        }
+
+        private string? getClientSignedInUserId()
+        {
+            return _contextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
+        private string? getClientSignedInRole()
+        {
+            return _contextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Role);
+        }
+
+        private async Task<bool> checkIsSurveyBelongToThisUser(string surveyId)
+        {
+            var userId = getClientSignedInUserId();
+            var surveys = await _surveyService.GetByCreatedUserIdAsync(userId);
+            foreach(var survey in surveys)
+            {
+                if (survey.Id == surveyId)
+                    return true;
+            }
+            return false;
         }
     }
 }

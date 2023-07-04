@@ -5,8 +5,7 @@ namespace SurveyHeaven.WebAPI.Logger
     public interface ILogManager<TCreate, TUpdate> 
     where TCreate : class,IDto 
     where TUpdate : class,IDto
-    {
-        
+    {        
         void NotExistInServer(string controllerName, string actionName, string id);
         void NotExistInServer(string controllerName, string actionName, TUpdate request);
         void NotExistInServer(string controllerName, string actionName);
@@ -24,5 +23,6 @@ namespace SurveyHeaven.WebAPI.Logger
         void ExceptionOccured(string controllerName, string actionName, TUpdate request, string exception);
         void ExceptionOccured(string controllerName, string actionName, string id, string exception);
         void ExceptionOccured(string controllerName, string actionName, string exception);
+        void UnauthorizedAccessTry(string controllerName, string actionName, string signedInUserId, string requestId);
     }
 }

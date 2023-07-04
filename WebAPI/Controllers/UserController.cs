@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
@@ -138,8 +137,8 @@ namespace SurveyHeaven.WebAPI.Controllers
                                 return Ok();
                             }
 
-                            _logManager.UnauthorizedProfileEdit(controllerName, actionName, signedInUserId, request.Id);
-                            return Unauthorized();
+                            _logManager.UnauthorizedAccessTry(controllerName, actionName, signedInUserId, request.Id);
+                            return Forbid();
                         }
                         _logManager.InvalidEdit(controllerName, actionName, request);
                         return BadRequest(ModelState);
@@ -263,7 +262,7 @@ namespace SurveyHeaven.WebAPI.Controllers
                         _logManager.SuccesfullGet(controllerName, actionName, id);
                         return Ok(updateDisplay);
                     }
-                    _logManager.UnauthorizedProfileGetForUpdate(controllerName, actionName, signedInUserId, id);
+                    _logManager.UnauthorizedAccessTry(controllerName, actionName, signedInUserId, id);
                     return Unauthorized();
                 }
                 _logManager.NotExistInServer(controllerName, actionName, id);
@@ -297,7 +296,7 @@ namespace SurveyHeaven.WebAPI.Controllers
                     }
                 }
                 _logManager.NotFoundUserLogin(controllerName, actionName, email, password);
-                return Unauthorized();
+                return NotFound();
             }
             catch (Exception ex) 
             {

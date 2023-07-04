@@ -39,11 +39,10 @@ namespace SurveyHeaven.Application.Services
             return answerDisplays;
         }
 
-        public IEnumerable<UpdateAnswerRequest> GetForSameUserCheckBySurveyId(string surveyId)
+        public IEnumerable<Answer> GetForSameUserCheckBySurveyId(string surveyId)
         {
             var answers = _repository.GetAllWithPredicate((a => a.SurveyId == surveyId));
-            var answerUpdateDisplays = _mapper.Map<IEnumerable<UpdateAnswerRequest>>(answers);
-            return answerUpdateDisplays;
+            return answers;
         }
 
         public async Task<IEnumerable<Answer>> GetForSameUserCheckBySurveyIdAsync(string surveyId)
@@ -52,17 +51,39 @@ namespace SurveyHeaven.Application.Services
             return answers;
         }
 
-        public void Update(UpdateAnswerRequest request)
+        public async Task<string> GetIdBySurveyIdAndUserIpAsync(string surveyId, string ipAddress)
+        {
+            var answers = await _repository.GetAllWithPredicateAsync((a => a.SurveyId == surveyId && a.UserIp == ipAddress));
+            var answer = answers[0];
+            return answer.Id;
+        }
+
+        public async Task<Dictionary<string, string>> GetIpAndUserIdByIdAsync(string id)
+        {
+            var answer = await _repository.GetAsync(id);
+            Dictionary<string, string> ipAndUserId = new Dictionary<string, string>
+            {
+                { "userId", answer.UserId },
+                { "ip", answer.UserIp }
+            };
+            return ipAndUserId;
+        }
+
+        public void Update(UpdateAnswerRequest request, string userId, string userIp)
         {
             var updatedAnswer = _mapper.Map<Answer>(request);
             updatedAnswer.Id = request.Id;
+            updatedAnswer.UserIp = userIp;
+            updatedAnswer.UserId = userId;
             _repository.Update(request.Id, updatedAnswer);
         }
 
-        public async Task UpdateAsync(UpdateAnswerRequest request)
+        public async Task UpdateAsync(UpdateAnswerRequest request, string userId, string userIp)
         {
             var updatedAnswer = _mapper.Map<Answer>(request);
             updatedAnswer.Id = request.Id;
+            updatedAnswer.UserIp = userIp;
+            updatedAnswer.UserId = userId;
             await _repository.UpdateAsync(request.Id, updatedAnswer);
         }
     }
