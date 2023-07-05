@@ -100,8 +100,16 @@ namespace SurveyHeaven.WebAPI.Controllers
 
                             var userRole = getClientSignedInRole();
                             bool isBelongToUser = await checkIsSurveyBelongToThisUser(request.Id);
-                            if (userRole == "admin" || userRole == "editor" || (userRole == "client" && isBelongToUser) ) { 
+                            if (userRole == "client" && isBelongToUser)
+                            { 
                                 await _surveyService.UpdateAsync(request);
+                                _logManager.SuccesfullEdit(controllerName, actionName, request);
+                                return Ok();
+                            }
+                            else if(userRole == "admin" || userRole == "editor")
+                            {
+                                var signedInUserId = getClientSignedInUserId();
+                                await _surveyService.UpdateAsync(request, signedInUserId);
                                 _logManager.SuccesfullEdit(controllerName, actionName, request);
                                 return Ok();
                             }

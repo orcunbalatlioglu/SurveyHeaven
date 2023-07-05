@@ -7,7 +7,6 @@ namespace SurveyHeaven.Domain.Entities
     {
         [Required(ErrorMessage = "Soru id boş bırakılamaz!")]
         public string QuestionId { get; set; }
-        //TODO: Custom validator ile sorunun zorunlu olup olmamasına göre validasyon ekle.
         public List<string> Content { get; set; }
     }
 }

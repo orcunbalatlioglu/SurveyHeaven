@@ -18,9 +18,9 @@ namespace SurveyHeaven.WebAPI.Logger
             _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğinde ip adresine erişilememiştir.");
         }
 
-        public void AlreadyUsedIpInformation(string controllerName, string actionName, CreateAnswerRequest request)
+        public void AlreadyRepliedSurvey(string controllerName, string actionName, CreateAnswerRequest request)
         {
-            _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğindeki ip adresi daha önce aynı anketi doldurduğu için tekrar cevaplamasına izin verilmemiştir.");
+            _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğindeki ip adresi veya kullanıcı id daha önce aynı anketi doldurduğu için tekrar cevaplamasına izin verilmemiştir.");
         }
     }
 }

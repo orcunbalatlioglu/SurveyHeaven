@@ -7,8 +7,6 @@ namespace SurveyHeaven.Application.DTOs.Requests
     {
         [Required(ErrorMessage = "Id boş bırakılamaz!")]
         public string Id { get; set; }
-        [Required(ErrorMessage = "Oluşturan kullanıcı id boş bırakılamaz!")]
-        public string CreatedUserId { get; set; }
         [Required]
         [MinLength(1,ErrorMessage = "En az bir soru oluşturulmalı!")]
         public List<Question> Questions { get; set; }

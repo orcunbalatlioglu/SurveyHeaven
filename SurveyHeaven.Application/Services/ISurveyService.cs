@@ -9,7 +9,9 @@ namespace SurveyHeaven.Application.Services
         Task<string> CreateAndReturnIdAsync(CreateSurveyRequest request);
         void Update(UpdateSurveyRequest request);
         Task UpdateAsync(UpdateSurveyRequest request);
-        IEnumerable<UpdateSurveyRequest> GetByCreatedUserId(string userId);
-        Task<IEnumerable<UpdateSurveyRequest>> GetByCreatedUserIdAsync(string userId);
+        void Update(UpdateSurveyRequest request, string signedInUserId);
+        Task UpdateAsync(UpdateSurveyRequest request, string signedInUserId);
+        IEnumerable<SurveyDisplayResponse> GetByCreatedUserId(string userId);
+        Task<IEnumerable<SurveyDisplayResponse>> GetByCreatedUserIdAsync(string userId);
     }
 }

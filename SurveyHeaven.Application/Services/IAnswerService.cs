@@ -6,9 +6,12 @@ namespace SurveyHeaven.Application.Services
 {
     public interface IAnswerService : IService<CreateAnswerRequest, UpdateAnswerRequest, AnswerDisplayResponse>
     {
-        Task CreateAsync(CreateAnswerRequest request, string ipAddress);
-        void Update(UpdateAnswerRequest request, string userId, string userIp);
-        Task UpdateAsync(UpdateAnswerRequest request, string userId, string userIp);
+        void Create(CreateAnswerRequest request, string ipAddress, string userId);
+        Task CreateAsync(CreateAnswerRequest request, string ipAddress, string userId);
+        void Update(UpdateAnswerRequest request);
+        Task UpdateAsync(UpdateAnswerRequest request);
+        void Update(UpdateAnswerRequest request, string editByUserId);
+        Task UpdateAsync(UpdateAnswerRequest request, string editByUserId);
         IEnumerable<AnswerDisplayResponse> GetBySurveyId(string surveyId);
         Task<IEnumerable<AnswerDisplayResponse>> GetBySurveyIdAsync(string surveyId);
         IEnumerable<Answer> GetForSameUserCheckBySurveyId(string surveyId);

@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.DTOs.Responses;
 using SurveyHeaven.Domain.Entities;
+using SurveyHeaven.Domain.Enums;
 using SurveyHeaven.DomainService.Repositories;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -31,6 +32,7 @@ namespace SurveyHeaven.Application.Services
             {
                 throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
             }
+            user.Role = UserRole.Client;
             _repository.Add(user);
         }
 
@@ -40,8 +42,9 @@ namespace SurveyHeaven.Application.Services
             var users = _repository.GetAllWithPredicate(u => u.Email == user.Email);
             if (users.Count > 0)
             {
-                throw new Exception("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
             }
+            user.Role = UserRole.Client;
             await _repository.AddAsync(user);
         }
 
@@ -51,8 +54,9 @@ namespace SurveyHeaven.Application.Services
             var users = _repository.GetAllWithPredicate(u => u.Email == user.Email);
             if(users.Count > 0)
             {
-                throw new Exception("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
             }
+            user.Role = UserRole.Client;
             _repository.Add(user);
             return user.Id;
         }
@@ -63,8 +67,59 @@ namespace SurveyHeaven.Application.Services
             var users = await _repository.GetAllWithPredicateAsync(u => u.Email == user.Email);
             if (users.Count > 0)
             {
-                throw new Exception("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
             }
+            user.Role = UserRole.Client;
+            await _repository.AddAsync(user);
+            return user.Id;
+        }
+
+        public void CreateEditor(CreateUserRequest request)
+        {
+            var user = _mapper.Map<User>(request);
+            var users = _repository.GetAllWithPredicate(u => u.Email == user.Email);
+            if (users.Count > 0)
+            {
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+            }
+            user.Role = UserRole.Editor;
+            _repository.Add(user);
+        }
+
+        public async Task CreateEditorAsync(CreateUserRequest request)
+        {
+            var user = _mapper.Map<User>(request);
+            var users = _repository.GetAllWithPredicate(u => u.Email == user.Email);
+            if (users.Count > 0)
+            {
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+            }
+            user.Role = UserRole.Editor;
+            await _repository.AddAsync(user);
+        }
+
+        public string CreateEditorAndReturnId(CreateUserRequest request)
+        {
+            var user = _mapper.Map<User>(request);
+            var users = _repository.GetAllWithPredicate(u => u.Email == user.Email);
+            if (users.Count > 0)
+            {
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+            }
+            user.Role = UserRole.Editor;
+            _repository.Add(user);
+            return user.Id;
+        }
+
+        public async Task<string> CreateEditorAndReturnIdAsync(CreateUserRequest request)
+        {
+            var user = _mapper.Map<User>(request);
+            var users = await _repository.GetAllWithPredicateAsync(u => u.Email == user.Email);
+            if (users.Count > 0)
+            {
+                throw new InvalidOperationException("Oluşturulmaya çalışılan kullanıcıya ait e-posta adresi zaten kullanımda!");
+            }
+            user.Role = UserRole.Editor;
             await _repository.AddAsync(user);
             return user.Id;
         }
@@ -73,14 +128,18 @@ namespace SurveyHeaven.Application.Services
         {
             var updatedUser = _mapper.Map<User>(request);
             updatedUser.Id = request.Id;
-            _repository.Update(request.Id, updatedUser);
+            var unchangedUser = GetById(updatedUser.Id);
+            updatedUser.Role = unchangedUser.Role;
+            _repository.Update(updatedUser.Id, updatedUser);
         }
 
         public async Task UpdateAsync(UpdateUserRequest request)
         {
             var updatedUser = _mapper.Map<User>(request);
             updatedUser.Id = request.Id;
-            await _repository.UpdateAsync(request.Id, updatedUser);
+            var unchangedUser = GetById(updatedUser.Id);
+            updatedUser.Role = unchangedUser.Role;
+            await _repository.UpdateAsync(updatedUser.Id, updatedUser);
         }
 
         public async Task<Dictionary<string,string>> ValidateAsync(string email, string password, string jwtKey)

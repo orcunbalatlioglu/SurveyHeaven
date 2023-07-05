@@ -1,13 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SurveyHeaven.Application.DTOs.Requests;
 using SurveyHeaven.Application.Services;
-using SurveyHeaven.Domain.Enums;
 using SurveyHeaven.WebAPI.Logger;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
-//TODO: Kullanıcı girişinde JWT işlemlerini yap.
-//TODO: İşlemelere role based authorize getir.
+//TODO: Jwt parametrelerini incele.
 //TODO: Hangfire'ı bütün projede kullanmaya çalış.
 //TODO: Giriş sırasında email ve şifrenin gözükmemesini sağla.
 
@@ -45,12 +43,7 @@ namespace SurveyHeaven.WebAPI.Controllers
 
             if (ModelState.IsValid)
             {
-                try { 
-                    if(!checkIsUserRoleValid(request.Role))
-                    {
-                        _logManager.InvalidUserRole(controllerName, actionName, request);
-                        return BadRequest("Kullanıcı rolü admin, client ve editor dışında bir şey olamaz!");
-                    }
+                try {
                     var id = await _userService.CreateAndReturnIdAsync(request);
                     bool isCreated = await _userService.IsExistsAsync(id);
 
@@ -68,6 +61,44 @@ namespace SurveyHeaven.WebAPI.Controllers
                     return Conflict(e.Message);
                 }
                 catch(Exception ex)
+                {
+                    _logManager.ExceptionOccured(controllerName, actionName, request, ex.Message);
+                    return StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            }
+            _logManager.InvalidCreate(controllerName, actionName, request);
+            return BadRequest(ModelState);
+        }
+
+        [Authorize(Roles = "admin")]
+        [HttpPost]
+        [Route("CreateEditor")]
+        public async Task<IActionResult> CreateEditor(CreateUserRequest request)
+        {
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var id = await _userService.CreateEditorAndReturnIdAsync(request);
+                    bool isCreated = await _userService.IsExistsAsync(id);
+
+                    if (isCreated)
+                    {
+                        _logManager.SuccesfullCreate(controllerName, actionName, request);
+                        return Ok();
+                    }
+                    _logManager.UnableCreate(controllerName, actionName, request);
+                    return StatusCode(StatusCodes.Status500InternalServerError);
+                }
+                catch (InvalidOperationException e)
+                {
+                    _logManager.ExceptionOccured(controllerName, actionName, request, e.Message);
+                    return Conflict(e.Message);
+                }
+                catch (Exception ex)
                 {
                     _logManager.ExceptionOccured(controllerName, actionName, request, ex.Message);
                     return StatusCode(StatusCodes.Status500InternalServerError);
@@ -215,7 +246,7 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
-        [Authorize(Roles = "admin,editor")]
+        [Authorize(Roles = "admin")]
         [HttpGet]
         [Route("GetForEdit")]
         public async Task<IActionResult> GetUserForEdit(string id)
@@ -263,7 +294,7 @@ namespace SurveyHeaven.WebAPI.Controllers
                         return Ok(updateDisplay);
                     }
                     _logManager.UnauthorizedAccessTry(controllerName, actionName, signedInUserId, id);
-                    return Unauthorized();
+                    return Forbid();
                 }
                 _logManager.NotExistInServer(controllerName, actionName, id);
                 return NotFound();
@@ -271,6 +302,33 @@ namespace SurveyHeaven.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        [Authorize(Roles = "admin,editor")]
+        [HttpGet]
+        [Route("GetAll")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            try
+            {
+                var userDisplays = await _userService.GetAllAsync();
+
+                if (userDisplays.Count() > 0)
+                {
+                    _logManager.SuccesfullGetAll(controllerName, actionName);
+                    return Ok(userDisplays);                    
+                }
+
+                _logManager.NotExistInServer(controllerName, actionName);
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logManager.ExceptionOccured(controllerName, actionName, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -303,13 +361,6 @@ namespace SurveyHeaven.WebAPI.Controllers
                 _logManager.ExceptionOccured(controllerName, actionName, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
-        }
-
-        private bool checkIsUserRoleValid(string userRole)
-        {
-            if (userRole != UserRole.Admin && userRole != UserRole.Client && userRole != UserRole.Editor)
-                    return false;            
-            return true;
         }
     }
 }

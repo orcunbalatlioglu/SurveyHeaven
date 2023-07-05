@@ -52,15 +52,24 @@ namespace SurveyHeaven.WebAPI.Controllers
                     var isReplied = await checkIfRepliedBeforeBySameUser(request.SurveyId);
                     if (isReplied)
                     {                        
-                        _logManager.AlreadyUsedIpInformation(controllerName,actionName,request);
+                        _logManager.AlreadyRepliedSurvey(controllerName,actionName,request);
 
                         string answerId = await _answerService.GetIdBySurveyIdAndUserIpAsync(request.SurveyId, ipAddress);
                         string message = "Bu anket daha önce doldurulmuş!";
                         return Conflict( new { message, answerId } );
                     }
-                    await _answerService.CreateAsync(request, ipAddress);
-                    _logManager.SuccesfullCreate(controllerName,actionName,request);
-                    return Ok();
+
+                    var isSurveyExist = await _surveyService.IsExistsAsync(request.SurveyId);
+                    if (isSurveyExist) { 
+                        await _answerService.CreateAsync(request, ipAddress, getClientSignedInUserId());
+                        _logManager.SuccesfullCreate(controllerName,actionName,request);
+                        return Ok();
+                    }
+                    else
+                    {
+                        _logManager.InvalidCreate(controllerName,actionName,request);
+                        return BadRequest("İstek içerisindeki surveyId ile eşleşen bir anket bulunamamıştır.");
+                    }
                 }
 
                 _logManager.InvalidCreate(controllerName,actionName,request);
@@ -103,13 +112,14 @@ namespace SurveyHeaven.WebAPI.Controllers
 
                         if (answerIp == clientIp || (answerUserId == signedInUserId && signedInRole == "client") )
                         {
-                            await _answerService.UpdateAsync(request, signedInUserId, clientIp);
+                            var unchangedAnswer = await _answerService.GetByIdAsync(request.Id);
+                            await _answerService.UpdateAsync(request);
                             _logManager.SuccesfullEdit(controllerName, actionName, request);
                             return Ok();
                         }
                         else if(signedInRole == "editor" || signedInRole == "admin") 
                         {
-                            await _answerService.UpdateAsync(request, signedInUserId, clientIp);
+                            await _answerService.UpdateAsync(request, signedInUserId);
                             _logManager.SuccesfullEdit(controllerName, actionName, request);
                             return Ok();
                         }
@@ -225,6 +235,7 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet]
         [Route("GetForEdit")]
         public async Task<IActionResult> GetAnswerForEdit(string id)

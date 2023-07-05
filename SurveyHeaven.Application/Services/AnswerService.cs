@@ -18,10 +18,19 @@ namespace SurveyHeaven.Application.Services
             _mapper = mapper;
         }
 
-        public async Task CreateAsync(CreateAnswerRequest request,string ipAddress)
+        public void Create(CreateAnswerRequest request, string ipAddress, string userId)
         {
             var answer = _mapper.Map<Answer>(request);
             answer.UserIp = ipAddress;
+            answer.UserId = userId;
+            _repository.Add(answer);
+        }
+
+        public async Task CreateAsync(CreateAnswerRequest request,string ipAddress, string userId)
+        {
+            var answer = _mapper.Map<Answer>(request);
+            answer.UserIp = ipAddress;
+            answer.UserId = userId;
             await _repository.AddAsync(answer);
         }
 
@@ -69,21 +78,68 @@ namespace SurveyHeaven.Application.Services
             return ipAndUserId;
         }
 
-        public void Update(UpdateAnswerRequest request, string userId, string userIp)
+        public void Update(UpdateAnswerRequest request)
         {
             var updatedAnswer = _mapper.Map<Answer>(request);
+            //Her mapping işleminde yeni bir obje yaratıldığından yeni bir id atanıyor bu yüzden id değişimine uğruyor.
+            //Bunu önlemek için request içinde gelen id'i tekrar kendi id'si olarak eşitledim.
             updatedAnswer.Id = request.Id;
-            updatedAnswer.UserIp = userIp;
-            updatedAnswer.UserId = userId;
+            //Güncelleme esnasında değişmemesi gereken değerleri burada eşitledim.
+            var unchangedAnswer = GetById(request.Id);
+            updatedAnswer.UserIp = unchangedAnswer.UserIp;
+            updatedAnswer.UserId = unchangedAnswer.UserId;
+            updatedAnswer.SurveyId = unchangedAnswer.SurveyId;
+            updatedAnswer.LastEditByUserId = unchangedAnswer.LastEditByUserId;
             _repository.Update(request.Id, updatedAnswer);
         }
 
-        public async Task UpdateAsync(UpdateAnswerRequest request, string userId, string userIp)
+        public async Task UpdateAsync(UpdateAnswerRequest request)
         {
             var updatedAnswer = _mapper.Map<Answer>(request);
+            //Her mapping işleminde yeni bir obje yaratıldığından yeni bir id atanıyor bu yüzden id değişimine uğruyor.
+            //Bunu önlemek için request içinde gelen id'i tekrar kendi id'si olarak eşitledim.
             updatedAnswer.Id = request.Id;
-            updatedAnswer.UserIp = userIp;
-            updatedAnswer.UserId = userId;
+            //Güncelleme esnasında değişmemesi gereken değerleri burada eşitledim.
+            var unchangedAnswer = await GetByIdAsync(request.Id);
+            updatedAnswer.UserIp = unchangedAnswer.UserIp;
+            updatedAnswer.UserId = unchangedAnswer.UserId;
+            updatedAnswer.SurveyId = unchangedAnswer.SurveyId;
+            updatedAnswer.LastEditByUserId = unchangedAnswer.LastEditByUserId;
+
+            await _repository.UpdateAsync(request.Id, updatedAnswer);
+        }
+
+        public void Update(UpdateAnswerRequest request, string editByUserId)
+        {
+            var updatedAnswer = _mapper.Map<Answer>(request);
+            //Her mapping işleminde yeni bir obje yaratıldığından yeni bir id atanıyor bu yüzden id değişimine uğruyor.
+            //Bunu önlemek için request içinde gelen id'i tekrar kendi id'si olarak eşitledim.
+            updatedAnswer.Id = request.Id;
+            //Güncelleme esnasında değişmemesi gereken değerleri burada eşitledim.
+            var unchangedAnswer = GetById(request.Id);
+            updatedAnswer.UserIp = unchangedAnswer.UserIp;
+            updatedAnswer.UserId = unchangedAnswer.UserId;
+            updatedAnswer.SurveyId = unchangedAnswer.SurveyId;
+            //Düzenlemeyi yapmış olan admin ya da editör id'si burada atadım.
+            updatedAnswer.LastEditByUserId = editByUserId;
+
+            _repository.Update(request.Id, updatedAnswer);
+        }
+
+        public async Task UpdateAsync(UpdateAnswerRequest request, string editByUserId)
+        {
+            var updatedAnswer = _mapper.Map<Answer>(request);
+            //Her mapping işleminde yeni bir obje yaratıldığından yeni bir id atanıyor bu yüzden id değişimine uğruyor.
+            //Bunu önlemek için request içinde gelen id'i tekrar kendi id'si olarak eşitledim.
+            updatedAnswer.Id = request.Id;
+            //Güncelleme esnasında değişmemesi gereken değerleri burada eşitledim.
+            var unchangedAnswer = await GetByIdAsync(request.Id);
+            updatedAnswer.UserIp = unchangedAnswer.UserIp;
+            updatedAnswer.UserId = unchangedAnswer.UserId;
+            updatedAnswer.SurveyId = unchangedAnswer.SurveyId;
+            //Düzenlemeyi yapmış olan admin ya da editör id'si burada atadım.
+            updatedAnswer.LastEditByUserId = editByUserId;
+
             await _repository.UpdateAsync(request.Id, updatedAnswer);
         }
     }
