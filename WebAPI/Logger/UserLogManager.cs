@@ -23,14 +23,19 @@ namespace SurveyHeaven.WebAPI.Logger
             _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde {@request} isteğindeki kullanıcı rolü geçersiz olduğundan sunucudaki varlığın düzenlenmesine izin verilmemiştir.");
         }
 
-        public void NotFoundUserLogin(string controllerName, string actionName, string email, string password)
+        public void NotFoundUserLogin(string controllerName, string actionName, LoginRequest request)
         {
-            _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki email:({email}) ve password:({password}) ile sunucuda eşleşen bir varlık bulunamamıştır.");
+            _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek:{@request} ile  sunucuda eşleşen bir varlık bulunamamıştır.");
         }
 
         public void SuccesfullUserLogin(string controllerName, string actionName, string id)
         {
             _logger.LogInformation($"{controllerName} kontrolcüsünde {actionName} işleminde istek içerisindeki bilgilerle id:{id} olan kullanıcı başarılı bir şekilde sisteme giriş yapmıştır.");
+        }
+
+        public void NotFoundSignedInUserInServer(string controllerName, string actionName, string signedInUserId)
+        {
+            _logger.LogError($"{controllerName} kontrolcüsünde {actionName} işleminde istek gönderen giriş yapmış olan kullanıcı id:{signedInUserId} sunucuda bulunamamıştır.");
         }
     }
 }

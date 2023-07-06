@@ -1,9 +1,8 @@
-﻿using SurveyHeaven.Domain.Common;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace SurveyHeaven.Domain.Entities
+namespace WebUI.Models.Entities
 {
-    public class Reply : IEntity
+    public class Reply
     {
         [Required(ErrorMessage = "Soru id boş bırakılamaz!")]
         public int QuestionId { get; set; }

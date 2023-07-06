@@ -56,7 +56,7 @@ namespace SurveyHeaven.DomainService.Repositories
                              .FirstOrDefault();
         }
 
-        public virtual Task<T?> GetAsync(string id)
+        public virtual Task<T> GetAsync(string id)
         {
             return Collection.Find(x => x.Id == id)
                              .FirstOrDefaultAsync();

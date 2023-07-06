@@ -276,32 +276,34 @@ namespace SurveyHeaven.WebAPI.Controllers
         [Authorize(Roles ="client")]
         [HttpGet]
         [Route("GetProfileForEdit")]
-        public async Task<IActionResult> GetProfileForEdit(string id)
+        public async Task<IActionResult> GetProfileForEdit()
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            var signedInUserId = _contextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (signedInUserId == null)
+            {
+                _logManager.NotFoundSignedInUserInServer(controllerName, actionName,signedInUserId);
+                return NotFound("Giriş yapmış olan kullanıcı id sunucuda bulunamamıştır.");
+            }
+
             try
             {
-                bool isExist = await _userService.IsExistsAsync(id);
+                
+                bool isExist = await _userService.IsExistsAsync(signedInUserId);
                 if (isExist)
-                {
-                    var signedInUserId = _contextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-                    if (id == signedInUserId)
-                    {
-                        var updateDisplay = await _userService.GetForUpdateAsync(id);
-                        updateDisplay.Password = string.Empty;
-                        _logManager.SuccesfullGet(controllerName, actionName, id);
-                        return Ok(updateDisplay);
-                    }
-                    _logManager.UnauthorizedAccessTry(controllerName, actionName, signedInUserId, id);
-                    return Forbid();
+                {                    
+                    var updateDisplay = await _userService.GetForUpdateAsync(signedInUserId);
+                    updateDisplay.Password = string.Empty;
+                    _logManager.SuccesfullGet(controllerName, actionName, signedInUserId);
+                    return Ok(updateDisplay);                    
                 }
-                _logManager.NotExistInServer(controllerName, actionName, id);
+                _logManager.NotExistInServer(controllerName, actionName, signedInUserId);
                 return NotFound();
             }
             catch (Exception ex)
             {
-                _logManager.ExceptionOccured(controllerName, actionName, id, ex.Message);
+                _logManager.ExceptionOccured(controllerName, actionName, signedInUserId, ex.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
@@ -336,12 +338,12 @@ namespace SurveyHeaven.WebAPI.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("Login")]
-        public async Task<IActionResult> Login(string email, string password)
+        public async Task<IActionResult> Login(LoginRequest request)
         {
             string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
             string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
             try { 
-                var validatedUserInfo = await _userService.ValidateAsync(email, password, JwtKey);
+                var validatedUserInfo = await _userService.ValidateAsync(request.Email, request.Password, JwtKey);
                 if (validatedUserInfo.ContainsKey("Token")) 
                 {
                     if (validatedUserInfo.ContainsKey("UserId"))
@@ -353,7 +355,7 @@ namespace SurveyHeaven.WebAPI.Controllers
                         return Ok(new { token, userDisplay });
                     }
                 }
-                _logManager.NotFoundUserLogin(controllerName, actionName, email, password);
+                _logManager.NotFoundUserLogin(controllerName, actionName, @request);
                 return NotFound();
             }
             catch (Exception ex) 

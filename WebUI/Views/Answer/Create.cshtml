@@ -1,0 +1,54 @@
+﻿@model WebUI.Models.SurveyViewModel
+
+@{
+    ViewData["Title"] = "Create";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @for (var i = 0; i < Model.Survey.Questions.Count; i++)
+            {
+                <div class="form-group">
+                    <label asp-for="@Model.Survey.Questions[i]">"@Model.Survey.Questions[i].Title"</label>
+                    @if (Model.Survey.Questions[i].Type == "checkbox")
+                    {
+                        @foreach (var option in Model.Survey.Questions[i].OptionContent)
+                        {
+                            <input type="checkbox">
+                            <label >@option</label>
+                        }
+                    }
+                    @if (Model.Survey.Questions[i].Type == "radio")
+                    {
+                        @foreach (var option in Model.Survey.Questions[i].OptionContent)
+                        {
+                            <input type="radio" value="@option" asp-for="@Model.Answer.Replies[i].Content">
+                            <label asp-for="@Model.Answer.Replies[i].Content">@option</label>
+                        }
+                    }
+                    @if (Model.Survey.Questions[i].Type == "textarea")
+                    {
+                        <textarea placeholder="Yanıtınızı giriniz" asp-for="@Model.Answer.Replies[i].Content"></textarea>
+                    }
+                    @if (Model.Survey.Questions[i].Type == "text")
+                    {
+                        <input type="text" placeholder="Yanıtınızı giriniz" asp-for="@Model.Answer.Replies[i].Content">
+                    }
+
+                    <span asp-validation-for="@Model.Answer.Replies" class="text-danger"></span>
+                </div>
+            }
+
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

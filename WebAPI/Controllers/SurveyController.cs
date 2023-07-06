@@ -55,7 +55,7 @@ namespace SurveyHeaven.WebAPI.Controllers
                         if (isCreated)
                         {
                             _logManager.SuccesfullCreate(controllerName, actionName, request);
-                            return Ok();
+                            return Ok(new { id });
                         }
 
                         _logManager.UnableCreate(controllerName, actionName, request);                    

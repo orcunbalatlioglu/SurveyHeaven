@@ -1,0 +1,63 @@
+﻿@model WebUI.Models.DTOs.Responses.AnswerDisplayResponse
+
+@{
+    ViewData["Title"] = "Get";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string contents=null;
+}
+
+<h1>Get</h1>
+
+<div>
+    <h4>AnswerDisplayResponse</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.SurveyId)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.SurveyId)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.UserIp)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.UserIp)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.UserId)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.UserId)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.LastEditByUserId)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.LastEditByUserId)
+        </dd>
+    </dl>
+        
+    <table class="table table-bordered">
+    @foreach (var reply in Model.Replies)
+    {
+        
+        <tr>
+            <td>
+                @reply.QuestionId
+            </td>
+            @foreach (var item in reply.Content)
+            {
+                <td>
+                @item
+                </td>
+            }
+
+        </tr> 
+    }
+    </table>
+</div>
+<div>
+    @Html.ActionLink("Edit", "Edit", new { /* id = Model.PrimaryKey */ }) |
+    <a asp-action="Index">Back to List</a>
+</div>
