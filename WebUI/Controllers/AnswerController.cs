@@ -90,7 +90,6 @@ namespace WebUI.Controllers
             return View();
         }
 
-        [HttpPost]
         public async Task<IActionResult> Delete(string id)
         {            
             try

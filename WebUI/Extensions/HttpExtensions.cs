@@ -1,4 +1,6 @@
 ﻿using NuGet.Common;
+using System.Net;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace WebUI.Extensions
@@ -7,8 +9,7 @@ namespace WebUI.Extensions
     {
         public static async Task<T> ReadContentAsync<T>(this HttpResponseMessage response)
         {
-            if (response.IsSuccessStatusCode == false)
-                throw new ApplicationException($"Something went wrong calling the API: {response.ReasonPhrase}");
+            response.EnsureSuccessStatusCode();
 
             var dataAsString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -21,10 +22,14 @@ namespace WebUI.Extensions
             return result;
         }
 
-        public static void InjectJwtToRequest(this HttpClient httpClient, IHttpContextAccessor contextAccessor)
+        public static void InjectJwtToRequest(this HttpClient httpClient, IHttpContextAccessor httpContext)
         {
-            //TODO: Burada token elde et
-            var token = contextAccessor.HttpContext.Session.GetString("Token");
+            string token = string.Empty;
+            var tokenClaim = httpContext.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Upn);
+            if(tokenClaim != null) 
+            { 
+                token = tokenClaim.Value;
+            }
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
         }
     }

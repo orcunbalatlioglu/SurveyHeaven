@@ -1,0 +1,27 @@
+﻿@model IEnumerable<WebUI.Models.DTOs.Responses.SurveyDisplayResponse>
+@{
+    ViewData["Title"] = "Anketler";
+}
+
+<div class="row d-flex justify-content-center">
+    <div class="col-8">
+        <table class="table">
+            <tr>
+                <th>Anket Id</th>
+                <th>Son Düzenleyen Kullanıcı Id</th>
+                <th>İşlemler</th>
+            </tr>
+            @foreach(var survey in Model){
+                <tr>
+                    <td>@survey.Id</td>
+                    <td>@survey.LastEditByUserId</td>
+                    <td>
+                        <a class="btn btn-secondary" asp-controller="Survey" asp-action="Edit" asp-route-id="@survey.Id">Düzenle</a>
+                        <a class="btn btn-danger" asp-controller="Survey" asp-action="Delete" asp-route-id="@survey.Id">Sil</a>
+                    </td>
+                </tr>
+            }
+        </table>
+        
+    </div>
+</div>

@@ -2,6 +2,7 @@
 using WebUI.Models.DTOs.Requests;
 using WebUI.Models.DTOs.Responses;
 using WebUI.Models;
+using System.Security.Claims;
 
 namespace WebUI.Services
 {
@@ -9,8 +10,6 @@ namespace WebUI.Services
     {
         private readonly HttpClient _client;
         private readonly IHttpContextAccessor _contextAccessor;
-        private string email = string.Empty;
-        private string password = string.Empty;
         private const string basePath = "/api/User";
         private const string loginPath = $"/Login";
         private const string createPath = "/Create";
@@ -18,6 +17,7 @@ namespace WebUI.Services
         private const string editProfilePath = "/ProfileEdit";
         private const string deletePath = "/Delete?id=";
         private const string getPath = "/Get?id=";
+        private const string getProfilePath = "/GetProfile";
         private const string getForEditPath = "/GetForEdit?id=";
         private const string getAllPath = "/GetAll";
         private const string getProfileForEditPath = "/GetProfileForEdit";
@@ -27,15 +27,16 @@ namespace WebUI.Services
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _contextAccessor = contextAccessor ?? throw new ArgumentNullException(nameof(client));
+
         }
 
-        public async Task<LoggedUserInfo> LoginAsync(LoginRequest request)
+        public async Task<LoginToken> LoginAsync(LoginRequest request)
         {
             JsonContent content = JsonContent.Create(request);
 
             var response = await _client.PostAsync(basePath + loginPath, content);
 
-            return await response.ReadContentAsync<LoggedUserInfo>();
+            return await response.ReadContentAsync<LoginToken>();
         }
 
         public async Task<HttpResponseMessage> CreateAsync(CreateUserRequest request)
@@ -77,6 +78,14 @@ namespace WebUI.Services
         {
             _client.InjectJwtToRequest(_contextAccessor);
             var response = await _client.GetAsync(basePath + getPath + id);
+
+            return await response.ReadContentAsync<UserDisplayResponse>();
+        }
+
+        public async Task<UserDisplayResponse> GetProfileAsync()
+        {
+            _client.InjectJwtToRequest(_contextAccessor);
+            var response = await _client.GetAsync(basePath + getProfilePath);
 
             return await response.ReadContentAsync<UserDisplayResponse>();
         }

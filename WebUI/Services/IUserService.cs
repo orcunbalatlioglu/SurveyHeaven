@@ -5,12 +5,13 @@ namespace WebUI.Services
 {
     public interface IUserService
     {
-        Task<LoggedUserInfo> LoginAsync(LoginRequest request);
+        Task<LoginToken> LoginAsync(LoginRequest request);
         Task<HttpResponseMessage> CreateAsync(CreateUserRequest request);
         Task<HttpResponseMessage> EditAsync(UpdateUserRequest request);
         Task<HttpResponseMessage> EditProfileAsync(UpdateUserRequest request);
         Task<HttpResponseMessage> DeleteAsync(string id);
         Task<UserDisplayResponse> GetAsync(string id);
+        Task<UserDisplayResponse> GetProfileAsync();
         Task<UpdateUserRequest> GetForEditAsync(string id);
         Task<IEnumerable<UserDisplayResponse>> GetAllAsync();
         Task<UpdateUserRequest> GetProfileForEditAsync();

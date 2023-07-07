@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Text;
 using WebUI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,7 +18,7 @@ c.BaseAddress = new Uri("http://localhost:5256/"));
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddSession(opt =>
 {
-    opt.IdleTimeout = TimeSpan.FromHours(2);
+    opt.IdleTimeout = TimeSpan.FromHours(1);
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -23,6 +27,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                     opt.LoginPath = "/User/Login";
                     opt.AccessDeniedPath = "/User/AccessDenied";
                     opt.ReturnUrlParameter = "gidilecekSayfa";
+                    opt.ExpireTimeSpan = TimeSpan.FromHours(1);
+                    
                 });
 
 var app = builder.Build();

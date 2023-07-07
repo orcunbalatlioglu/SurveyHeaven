@@ -273,6 +273,41 @@ namespace SurveyHeaven.WebAPI.Controllers
             }
         }
 
+        [Authorize(Roles = "client")]
+        [HttpGet]
+        [Route("GetProfile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+            string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+            var signedInUserId = _contextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (signedInUserId == null)
+            {
+                _logManager.NotFoundSignedInUserInServer(controllerName, actionName, signedInUserId);
+                return NotFound("Giriş yapmış olan kullanıcı id sunucuda bulunamamıştır.");
+            }
+
+            try
+            {
+                bool isExist = await _userService.IsExistsAsync(signedInUserId);
+                if (isExist)
+                {
+                    var userDisplay = await _userService.GetByIdAsync(signedInUserId);
+                    if (userDisplay != null) { 
+                        _logManager.SuccesfullGet(controllerName, actionName, signedInUserId);
+                        return Ok(userDisplay);
+                    }
+                }
+                _logManager.NotExistInServer(controllerName, actionName, signedInUserId);
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logManager.ExceptionOccured(controllerName, actionName, signedInUserId, ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
         [Authorize(Roles ="client")]
         [HttpGet]
         [Route("GetProfileForEdit")]
@@ -350,9 +385,8 @@ namespace SurveyHeaven.WebAPI.Controllers
                     { 
                         string token = validatedUserInfo["Token"];
                         string userId = validatedUserInfo["UserId"];
-                        var userDisplay = await _userService.GetByIdAsync(userId);
                         _logManager.SuccesfullUserLogin(controllerName, actionName, userId);
-                        return Ok(new { token, userDisplay });
+                        return Ok( new { token });
                     }
                 }
                 _logManager.NotFoundUserLogin(controllerName, actionName, @request);
