@@ -16,6 +16,7 @@
                     <td>@survey.Id</td>
                     <td>@survey.LastEditByUserId</td>
                     <td>
+                        <a class="btn btn-primary" asp-controller="Answer" asp-action="Create" asp-route-id="@survey.Id">Cevapla</a>
                         <a class="btn btn-secondary" asp-controller="Survey" asp-action="Edit" asp-route-id="@survey.Id">Düzenle</a>
                         <a class="btn btn-danger" asp-controller="Survey" asp-action="Delete" asp-route-id="@survey.Id">Sil</a>
                     </td>

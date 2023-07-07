@@ -5,9 +5,7 @@ using SurveyHeaven.WebAPI.Logger;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
-//TODO: Jwt parametrelerini incele.
 //TODO: Hangfire'ı bütün projede kullanmaya çalış.
-//TODO: Giriş sırasında email ve şifrenin gözükmemesini sağla.
 
 namespace SurveyHeaven.WebAPI.Controllers
 {
