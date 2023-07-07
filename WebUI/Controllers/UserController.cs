@@ -29,7 +29,7 @@ namespace WebUI.Controllers
             try { 
                 if(ModelState.IsValid) 
                 { 
-                    _userService.CreateAsync(request);
+                    await _userService.CreateAsync(request);
                     return RedirectToAction("SignUpSucces");
                 }
                 return View();
